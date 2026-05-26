@@ -1,19 +1,46 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, StatusBar, Alert,
+  StyleSheet, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Droplets, Mail, Lock } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { authFetch } from '../constants/api';
+import { useAuth } from '../constants/AuthContext';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { setToken, setUserName } = useAuth();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) { Alert.alert('Atenção', 'Preencha todos os campos'); return; }
-    router.replace('/(tabs)');
+
+    setLoading(true);
+    try {
+      const res = await authFetch('/auth/login', null, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        Alert.alert('Erro', data.message || 'Email ou senha inválidos');
+        return;
+      }
+
+      setToken(data.token);
+      if (data.user?.name) setUserName(data.user.name);
+
+      router.replace('/(tabs)');
+    } catch (e) {
+      Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor. Verifique se o ngrok está rodando.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,15 +64,18 @@ export default function LoginScreen() {
             <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#90CAF9"
               value={password} onChangeText={setPassword} secureTextEntry />
           </View>
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.85} disabled={loading}>
             <LinearGradient colors={['#1565C0', '#0D47A1']} style={styles.loginGrad}>
-              <Text style={styles.loginText}>Entrar</Text>
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.loginText}>Entrar</Text>
+              }
             </LinearGradient>
           </TouchableOpacity>
           <TouchableOpacity style={styles.registerBtn} activeOpacity={0.75} onPress={() => router.push('/cadastro')}>
             <Text style={styles.registerText}>Criar Conta</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={{ marginTop: 8, alignSelf: 'center' }}>
+          <TouchableOpacity style={{ marginTop: 8, alignSelf: 'center' }} onPress={() => router.push('/esqueci-senha')} activeOpacity={0.75}>
             <Text style={styles.forgotText}>Esqueci minha senha</Text>
           </TouchableOpacity>
         </View>

@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Home, History, User } from 'lucide-react-native';
 
-export default function TabLayout() {a
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
@@ -15,8 +15,8 @@ export default function TabLayout() {a
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.08,
           shadowRadius: 12,
-          height: 64,
-          paddingBottom: 10,
+          height: 80,
+          paddingBottom: 24,
           paddingTop: 8,
         },
         tabBarLabelStyle: {

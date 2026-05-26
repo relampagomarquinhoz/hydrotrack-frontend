@@ -10,10 +10,13 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Droplets, Mail, Lock, User, Ruler, Weight, ChevronLeft } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { authFetch } from '../constants/api';
+import { useAuth } from '../constants/AuthContext';
 
 const GENDER_OPTIONS = ['Masculino', 'Feminino', 'Outro'];
 
@@ -26,6 +29,8 @@ export default function RegisterScreen() {
   const [height, setHeight] = useState('');
   const [gender, setGender] = useState('');
   const [step, setStep] = useState(1); // 1 = dados pessoais, 2 = dados físicos
+  const [loading, setLoading] = useState(false);
+  const { setToken, setUserName } = useAuth();
 
   const handleNextStep = () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -39,18 +44,40 @@ export default function RegisterScreen() {
     setStep(2);
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!weight || !height || !gender) {
       Alert.alert('Atenção', 'Preencha todos os campos');
       return;
     }
-    // Calcular meta de água sugerida (35ml por kg de peso)
     const suggestedGoal = Math.round(parseFloat(weight) * 35);
-    Alert.alert(
-      'Conta criada!',
-      `Bem-vindo(a), ${name}!\nSua meta diária sugerida é ${suggestedGoal} ml`,
-      [{ text: 'Começar', onPress: () => router.replace('/(tabs)') }]
-    );
+
+    setLoading(true);
+    try {
+      const res = await authFetch('/auth/register', null, {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password, weight, height, gender }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        Alert.alert('Erro', data.message || 'Não foi possível criar a conta');
+        return;
+      }
+
+      if (data.token) setToken(data.token);
+      if (data.user?.name) setUserName(data.user.name);
+
+      Alert.alert(
+        'Conta criada!',
+        `Bem-vindo(a), ${name}!\nSua meta diária sugerida é ${suggestedGoal} ml`,
+        [{ text: 'Começar', onPress: () => router.replace('/(tabs)') }]
+      );
+    } catch (e) {
+      Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor. Verifique se o ngrok está rodando.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -219,9 +246,12 @@ export default function RegisterScreen() {
                 </View>
               ) : null}
 
-              <TouchableOpacity style={styles.btnPrimary} onPress={handleRegister} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.btnPrimary} onPress={handleRegister} activeOpacity={0.85} disabled={loading}>
                 <LinearGradient colors={['#1565C0', '#0D47A1']} style={styles.btnGrad}>
-                  <Text style={styles.btnText}>Criar conta</Text>
+                  {loading
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.btnText}>Criar conta</Text>
+                  }
                 </LinearGradient>
               </TouchableOpacity>
             </View>
