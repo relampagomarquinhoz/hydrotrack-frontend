@@ -1,4 +1,4 @@
-export const API_URL = 'http://10.0.2.2:3000';
+export const API_URL = 'https://dictate-polygon-little.ngrok-free.dev';
 
 export const authFetch = async (path: string, token: string | null, options: RequestInit = {}) => {
   return fetch(API_URL + path, {

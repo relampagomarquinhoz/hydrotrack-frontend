@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { Bell, Calculator, Camera, ChevronRight, Clock, Droplets, LogOut, Moon, Settings, Sun, User, X } from 'lucide-react-native';
+import { Bell, Calculator, Camera, ChevronRight, Clock, Droplets, KeyRound, LogOut, Moon, Pencil, Settings, Sun, User, X } from 'lucide-react-native';
 import React, { useState, useCallback } from 'react';
-import { Alert, Image, Modal, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../constants/AuthContext';
 import { authFetch } from '../../constants/api';
 import { scheduleHydrationNotifications, requestNotificationPermission } from '../../constants/notificationService';
@@ -33,6 +33,21 @@ export default function ProfileScreen() {
   // ✅ Foto de perfil local
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
+  // Estados — Editar perfil
+  const [editVisible, setEditVisible] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [editHeight, setEditHeight] = useState('');
+  const [editGender, setEditGender] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Estados — Alterar senha
+  const [passVisible, setPassVisible] = useState(false);
+  const [currentPass, setCurrentPass] = useState('');
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [passLoading, setPassLoading] = useState(false);
+
   const bg = '#F0F7FF';
   const cardBg = '#fff';
   const text = '#1A237E';
@@ -45,6 +60,11 @@ export default function ProfileScreen() {
       if (d.user) {
         setUserEmail(d.user.email ?? '');
         setUserGoal(d.user.daily_goal_ml ?? null);
+        // Pré-preenche os campos de edição
+        setEditName(d.user.name ?? '');
+        setEditWeight(d.user.weight_kg ? String(d.user.weight_kg) : '');
+        setEditHeight(d.user.height_cm ? String(d.user.height_cm) : '');
+        setEditGender(d.user.gender ?? '');
       }
     }).catch(() => {});
 
@@ -119,6 +139,55 @@ export default function ProfileScreen() {
       await cancelAllNotifications();
       setNotifVisible(false);
       Alert.alert('Salvo!', 'Lembretes desativados.');
+    }
+  };
+
+  // Salvar edição de perfil
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) { Alert.alert('Atenção', 'O nome não pode ficar vazio.'); return; }
+    setEditLoading(true);
+    try {
+      const res = await authFetch('/auth/me', token, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name:      editName.trim(),
+          weight_kg: editWeight  ? parseFloat(editWeight)  : undefined,
+          height_cm: editHeight  ? parseFloat(editHeight)  : undefined,
+          gender:    editGender  || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { Alert.alert('Erro', data.message || 'Não foi possível salvar.'); return; }
+      if (data.user?.daily_goal_ml) setUserGoal(data.user.daily_goal_ml);
+      setEditVisible(false);
+      Alert.alert('Sucesso!', 'Perfil atualizado com sucesso.');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // Alterar senha
+  const handleChangePassword = async () => {
+    if (!currentPass || !newPass || !confirmPass) { Alert.alert('Atenção', 'Preencha todos os campos.'); return; }
+    if (newPass.length < 6) { Alert.alert('Atenção', 'A nova senha deve ter pelo menos 6 caracteres.'); return; }
+    if (newPass !== confirmPass) { Alert.alert('Erro', 'A nova senha e a confirmação não coincidem.'); return; }
+    setPassLoading(true);
+    try {
+      const res = await authFetch('/auth/change-password', token, {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass }),
+      });
+      const data = await res.json();
+      if (!res.ok) { Alert.alert('Erro', data.message || 'Não foi possível alterar a senha.'); return; }
+      setPassVisible(false);
+      setCurrentPass(''); setNewPass(''); setConfirmPass('');
+      Alert.alert('Sucesso!', 'Senha alterada com sucesso.');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+    } finally {
+      setPassLoading(false);
     }
   };
 
@@ -201,6 +270,28 @@ export default function ProfileScreen() {
             <View style={styles.settingText}>
               <Text style={[styles.settingLabel, { color: text }]}>Alterar foto de perfil</Text>
               <Text style={[styles.settingHint, { color: textSub }]}>{photoUri ? 'Foto definida ✓' : 'Câmera ou galeria'}</Text>
+            </View>
+            <ChevronRight color={textSub} size={16} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: border }]} />
+
+          <TouchableOpacity style={styles.settingRow} onPress={() => setEditVisible(true)} activeOpacity={0.7}>
+            <View style={[styles.settingIconWrap, { backgroundColor: '#E8F5E9' }]}><Pencil color="#2E7D32" size={18} /></View>
+            <View style={styles.settingText}>
+              <Text style={[styles.settingLabel, { color: text }]}>Editar dados do perfil</Text>
+              <Text style={[styles.settingHint, { color: textSub }]}>Nome, peso, altura e gênero</Text>
+            </View>
+            <ChevronRight color={textSub} size={16} />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: border }]} />
+
+          <TouchableOpacity style={styles.settingRow} onPress={() => setPassVisible(true)} activeOpacity={0.7}>
+            <View style={[styles.settingIconWrap, { backgroundColor: '#FCE4EC' }]}><KeyRound color="#C62828" size={18} /></View>
+            <View style={styles.settingText}>
+              <Text style={[styles.settingLabel, { color: text }]}>Alterar senha</Text>
+              <Text style={[styles.settingHint, { color: textSub }]}>Troque sua senha de acesso</Text>
             </View>
             <ChevronRight color={textSub} size={16} />
           </TouchableOpacity>
@@ -328,6 +419,83 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+      {/* Modal Editar Perfil */}
+      <Modal visible={editVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}><Pencil color="#2E7D32" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Editar dados do perfil</Text></View>
+              <TouchableOpacity onPress={() => setEditVisible(false)}><X color={textSub} size={20} /></TouchableOpacity>
+            </View>
+
+            <View style={[styles.calcInput, { borderColor: border }]}>
+              <Text style={[styles.calcInputLabel, { color: textSub }]}>Nome</Text>
+              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Seu nome" placeholderTextColor={textSub} value={editName} onChangeText={setEditName} autoCapitalize="words" />
+            </View>
+
+            <View style={[styles.calcInput, { borderColor: border }]}>
+              <Text style={[styles.calcInputLabel, { color: textSub }]}>Peso (kg)</Text>
+              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 70" placeholderTextColor={textSub} value={editWeight} onChangeText={setEditWeight} keyboardType="numeric" />
+            </View>
+
+            <View style={[styles.calcInput, { borderColor: border }]}>
+              <Text style={[styles.calcInputLabel, { color: textSub }]}>Altura (cm)</Text>
+              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 170" placeholderTextColor={textSub} value={editHeight} onChangeText={setEditHeight} keyboardType="numeric" />
+            </View>
+
+            <Text style={[styles.notifSectionLabel, { color: text }]}>Gênero</Text>
+            <View style={styles.intervalRow}>
+              {['Masculino', 'Feminino', 'Outro'].map(g => (
+                <TouchableOpacity key={g} style={[styles.intervalBtn, { borderColor: border }, editGender === g && styles.intervalBtnActive]} onPress={() => setEditGender(g)} activeOpacity={0.8}>
+                  <Text style={[styles.intervalLabel, { color: textSub }, editGender === g && styles.intervalLabelActive]}>{g}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity onPress={handleSaveEdit} activeOpacity={0.85} disabled={editLoading}>
+              <LinearGradient colors={['#2E7D32', '#1B5E20']} style={styles.calcBtn}>
+                {editLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.calcBtnText}>Salvar alterações</Text>}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Alterar Senha */}
+      <Modal visible={passVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}><KeyRound color="#C62828" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Alterar senha</Text></View>
+              <TouchableOpacity onPress={() => { setPassVisible(false); setCurrentPass(''); setNewPass(''); setConfirmPass(''); }}>
+                <X color={textSub} size={20} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.calcInput, { borderColor: border }]}>
+              <Text style={[styles.calcInputLabel, { color: textSub }]}>Senha atual</Text>
+              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="••••••" placeholderTextColor={textSub} value={currentPass} onChangeText={setCurrentPass} secureTextEntry />
+            </View>
+
+            <View style={[styles.calcInput, { borderColor: border }]}>
+              <Text style={[styles.calcInputLabel, { color: textSub }]}>Nova senha</Text>
+              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Mínimo 6 caracteres" placeholderTextColor={textSub} value={newPass} onChangeText={setNewPass} secureTextEntry />
+            </View>
+
+            <View style={[styles.calcInput, { borderColor: border }]}>
+              <Text style={[styles.calcInputLabel, { color: textSub }]}>Confirmar nova senha</Text>
+              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Repita a nova senha" placeholderTextColor={textSub} value={confirmPass} onChangeText={setConfirmPass} secureTextEntry />
+            </View>
+
+            <TouchableOpacity onPress={handleChangePassword} activeOpacity={0.85} disabled={passLoading}>
+              <LinearGradient colors={['#C62828', '#B71C1C']} style={styles.calcBtn}>
+                {passLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.calcBtnText}>Alterar senha</Text>}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
