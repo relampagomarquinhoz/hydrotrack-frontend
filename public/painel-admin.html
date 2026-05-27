@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HydroTrack — Painel Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --blue:     #1565C0;
+    --blue-d:   #0D47A1;
+    --blue-l:   #E3F2FD;
+    --blue-m:   #90CAF9;
+    --green:    #2E7D32;
+    --green-l:  #E8F5E9;
+    --red:      #C62828;
+    --red-l:    #FFEBEE;
+    --orange:   #E65100;
+    --orange-l: #FFF3E0;
+    --bg:       #F0F7FF;
+    --card:     #ffffff;
+    --text:     #0D2550;
+    --sub:      #546E7A;
+    --border:   #BBDEFB;
+    --shadow:   0 4px 24px rgba(21,101,192,0.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── TELA DE LOGIN ── */
+  #login-screen {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #0D47A1 0%, #1565C0 50%, #1E88E5 100%);
+  }
+  .login-box {
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 28px;
+    padding: 48px 40px;
+    width: 100%; max-width: 400px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+    animation: fadeUp .5s ease;
+  }
+  .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; justify-content: center; }
+  .login-logo .drop { width: 48px; height: 48px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .login-logo span { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: #fff; }
+  .login-badge { display: block; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.6); text-transform: uppercase; margin-bottom: 28px; }
+  .login-field { margin-bottom: 14px; }
+  .login-field label { display: block; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 6px; }
+  .login-field input {
+    width: 100%; padding: 12px 16px;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 12px; color: #fff; font-size: 14px; font-family: 'DM Sans', sans-serif;
+    outline: none; transition: border .2s;
+  }
+  .login-field input::placeholder { color: rgba(255,255,255,0.45); }
+  .login-field input:focus { border-color: rgba(255,255,255,0.6); }
+  .login-btn {
+    width: 100%; padding: 14px;
+    background: #fff; color: var(--blue); border: none; border-radius: 12px;
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+    cursor: pointer; margin-top: 8px; transition: transform .15s, box-shadow .15s;
+  }
+  .login-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  .login-error { color: #FFCDD2; font-size: 13px; text-align: center; margin-top: 12px; display: none; }
+
+  /* ── DASHBOARD ── */
+  #dashboard { display: none; }
+
+  .topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 0 32px; height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(21,101,192,0.07);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-drop { width: 36px; height: 36px; background: var(--blue-l); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .topbar-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--blue); }
+  .topbar-badge { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--sub); background: var(--blue-l); padding: 3px 10px; border-radius: 20px; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .topbar-user { font-size: 13px; color: var(--sub); font-weight: 500; }
+  .logout-btn { padding: 7px 16px; border: 1.5px solid var(--border); border-radius: 8px; background: transparent; color: var(--red); font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; }
+  .logout-btn:hover { background: var(--red-l); }
+
+  .main { padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+  .page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: var(--sub); margin-bottom: 28px; }
+
+  /* ── STATS ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--card); border-radius: 20px; padding: 24px;
+    border: 1px solid var(--border); box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+    animation: fadeUp .4s ease both;
+  }
+  .stat-card:nth-child(2) { animation-delay: .08s; }
+  .stat-card:nth-child(3) { animation-delay: .16s; }
+  .stat-card:nth-child(4) { animation-delay: .24s; }
+  .stat-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 4px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--text); }
+  .stat-label { font-size: 13px; color: var(--sub); font-weight: 500; }
+
+  /* ── TABELA ── */
+  .section-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-title span { font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 500; color: var(--sub); margin-left: auto; }
+
+  .search-bar {
+    width: 100%; padding: 11px 16px; margin-bottom: 14px;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text);
+    background: var(--card); outline: none; transition: border .2s;
+  }
+  .search-bar:focus { border-color: var(--blue); }
+
+  .table-wrap { background: var(--card); border-radius: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--blue-l); }
+  th { padding: 13px 20px; text-align: left; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--blue); letter-spacing: .5px; text-transform: uppercase; }
+  td { padding: 14px 20px; font-size: 14px; border-top: 1px solid var(--border); vertical-align: middle; }
+  tbody tr { transition: background .15s; cursor: pointer; }
+  tbody tr:hover { background: var(--blue-l); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge-green { background: var(--green-l); color: var(--green); }
+  .badge-gray  { background: #ECEFF1; color: #546E7A; }
+  .avatar-cell { display: flex; align-items: center; gap: 10px; }
+  .avatar-init { width: 34px; height: 34px; border-radius: 50%; background: var(--blue-l); color: var(--blue); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* ── MODAL DETALHE ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 200;
+    align-items: center; justify-content: center;
+    animation: fadeIn .2s ease;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card); border-radius: 24px; padding: 32px;
+    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    animation: fadeUp .3s ease;
+  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--text); }
+  .modal-close { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border); background: transparent; cursor: pointer; font-size: 18px; color: var(--sub); display: flex; align-items: center; justify-content: center; transition: background .15s; }
+  .modal-close:hover { background: var(--blue-l); }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .detail-item { background: var(--bg); border-radius: 12px; padding: 14px 16px; }
+  .detail-label { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .detail-value { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+
+  .history-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .history-bar-wrap { margin-bottom: 8px; }
+  .history-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+  .history-bar-bg { background: var(--blue-l); border-radius: 8px; height: 10px; overflow: hidden; }
+  .history-bar-fill { height: 100%; background: linear-gradient(90deg, #1565C0, #42A5F5); border-radius: 8px; transition: width .6s ease; }
+  .history-bar-fill.reached { background: linear-gradient(90deg, #2E7D32, #66BB6A); }
+
+  .empty { text-align: center; padding: 48px 20px; color: var(--sub); font-size: 14px; }
+  .loading { text-align: center; padding: 48px; color: var(--sub); font-size: 14px; }
+
+  @keyframes fadeUp  { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: none; } }
+  @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+
+  @media (max-width: 640px) {
+    .main { padding: 16px; }
+    .topbar { padding: 0 16px; }
+    .detail-grid { grid-template-columns: 1fr; }
+    th:nth-child(3), td:nth-child(3),
+    th:nth-child(4), td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ LOGIN ═══════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="drop">💧</div>
+      <span>HydroTrack</span>
+    </div>
+    <span class="login-badge">Painel Administrativo</span>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="admin-email" placeholder="admin@hydrotrack.com" />
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="admin-pass" placeholder="••••••••" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">Entrar no painel</button>
+    <p class="login-error" id="login-error">Credenciais inválidas. Tente novamente.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════ DASHBOARD ═══════════════════════ -->
+<div id="dashboard">
+  <nav class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-drop">💧</div>
+      <span class="topbar-title">HydroTrack</span>
+      <span class="topbar-badge">Admin</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="topbar-user">Administrador</span>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
+    </div>
+  </nav>
+
+  <div class="main">
+    <p class="page-title">Dashboard</p>
+    <p class="page-sub">Visão geral do HydroTrack em tempo real</p>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#E3F2FD">👥</div>
+        <div class="stat-value" id="s-total">—</div>
+        <div class="stat-label">Usuários cadastrados</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#E8F5E9">✅</div>
+        <div class="stat-value" id="s-active">—</div>
+        <div class="stat-label">Ativos nos últimos 7 dias</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#FFF3E0">🆕</div>
+        <div class="stat-value" id="s-new">—</div>
+        <div class="stat-label">Novos esta semana</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#EDE7F6">💧</div>
+        <div class="stat-value" id="s-avg">—</div>
+        <div class="stat-label">Média de consumo hoje (ml)</div>
+      </div>
+    </div>
+
+    <!-- Tabela de usuários -->
+    <div class="section-title">
+      Usuários
+      <span id="user-count"></span>
+    </div>
+    <input class="search-bar" type="text" placeholder="🔍  Buscar por nome ou email..." oninput="filterUsers(this.value)" />
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>Email</th>
+            <th>Meta diária</th>
+            <th>Cadastro</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="5" class="loading">Carregando usuários...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ MODAL DETALHE ═══════════════════════ -->
+<div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-name">—</span>
+      <button class="modal-close" onclick="document.getElementById('detail-modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="detail-grid" id="detail-grid"></div>
+    <div class="history-title">Consumo — últimos 7 dias</div>
+    <div id="detail-history"></div>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ────────────────────────────────────────────────
+  // Troque pela URL do Railway após o deploy
+  const API = 'https://hydrotrack-backend-2ucp.onrender.com';
+
+  let adminToken = localStorage.getItem('ht_admin_token') || '';
+  let allUsers   = [];
+
+  // Checa se já está logado ao carregar
+  window.addEventListener('DOMContentLoaded', () => {
+    if (adminToken) showDashboard();
+  });
+
+  // ── LOGIN ─────────────────────────────────────────────────
+  async function doLogin() {
+    const email = document.getElementById('admin-email').value.trim();
+    const pass  = document.getElementById('admin-pass').value;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+
+    try {
+      const res  = await fetch(`${API}/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      adminToken = data.token;
+      localStorage.setItem('ht_admin_token', adminToken);
+      showDashboard();
+    } catch (e) {
+      errEl.style.display = 'block';
+    }
+  }
+
+  // Enter no login
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+  });
+
+  function doLogout() {
+    localStorage.removeItem('ht_admin_token');
+    adminToken = '';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+
+  // ── DASHBOARD ─────────────────────────────────────────────
+  function showDashboard() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadStats();
+    loadUsers();
+  }
+
+  async function apiFetch(path) {
+    const res = await fetch(`${API}${path}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    if (res.status === 401) { doLogout(); throw new Error('Unauthorized'); }
+    return res.json();
+  }
+
+  async function loadStats() {
+    try {
+      const { stats } = await apiFetch('/admin/stats');
+      document.getElementById('s-total').textContent  = stats.total_users;
+      document.getElementById('s-active').textContent = stats.active_users_7d;
+      document.getElementById('s-new').textContent    = stats.new_users_7d;
+      document.getElementById('s-avg').textContent    = stats.avg_ml_today.toLocaleString('pt-BR');
+    } catch {}
+  }
+
+  async function loadUsers() {
+    try {
+      const { users } = await apiFetch('/admin/users');
+      allUsers = users;
+      document.getElementById('user-count').textContent = `${users.length} cadastrados`;
+      renderUsers(users);
+    } catch {
+      document.getElementById('users-tbody').innerHTML =
+        '<tr><td colspan="5" class="empty">Erro ao carregar usuários.</td></tr>';
+    }
+  }
+
+  function renderUsers(users) {
+    const tbody = document.getElementById('users-tbody');
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">Nenhum usuário encontrado.</td></tr>';
+      return;
+    }
+    const since7d = new Date(); since7d.setDate(since7d.getDate() - 7);
+    tbody.innerHTML = users.map(u => {
+      const initials = u.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+      const created  = new Date(u.created_at);
+      const isNew    = created >= since7d;
+      const dateStr  = created.toLocaleDateString('pt-BR');
+      return `
+        <tr onclick="openDetail('${u.id}')">
+          <td><div class="avatar-cell"><div class="avatar-init">${initials}</div><strong>${u.name}</strong></div></td>
+          <td style="color:var(--sub)">${u.email}</td>
+          <td>${(u.daily_goal_ml||0).toLocaleString('pt-BR')} ml</td>
+          <td style="color:var(--sub)">${dateStr}</td>
+          <td><span class="badge ${isNew ? 'badge-green' : 'badge-gray'}">${isNew ? 'Novo' : 'Ativo'}</span></td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filterUsers(q) {
+    const term = q.toLowerCase();
+    renderUsers(allUsers.filter(u =>
+      u.name.toLowerCase().includes(term) || u.email.toLowerCase().includes(term)
+    ));
+  }
+
+  // ── MODAL DETALHE ─────────────────────────────────────────
+  async function openDetail(id) {
+    const modal = document.getElementById('detail-modal');
+    modal.classList.add('open');
+    document.getElementById('modal-name').textContent = 'Carregando...';
+    document.getElementById('detail-grid').innerHTML  = '';
+    document.getElementById('detail-history').innerHTML = '<p style="color:var(--sub);font-size:13px">Carregando...</p>';
+
+    try {
+      const { user, history, total_logs } = await apiFetch(`/admin/users/${id}`);
+      document.getElementById('modal-name').textContent = user.name;
+
+      const fields = [
+        { label: 'Email',         value: user.email },
+        { label: 'Gênero',        value: user.gender || '—' },
+        { label: 'Peso',          value: user.weight_kg ? `${user.weight_kg} kg` : '—' },
+        { label: 'Altura',        value: user.height_cm ? `${user.height_cm} cm` : '—' },
+        { label: 'Meta diária',   value: `${(user.daily_goal_ml||0).toLocaleString('pt-BR')} ml` },
+        { label: 'Total de logs', value: total_logs },
+        { label: 'Cadastro',      value: new Date(user.created_at).toLocaleDateString('pt-BR') },
+      ];
+
+      document.getElementById('detail-grid').innerHTML = fields.map(f => `
+        <div class="detail-item">
+          <div class="detail-label">${f.label}</div>
+          <div class="detail-value">${f.value}</div>
+        </div>`).join('');
+
+      if (!history.length) {
+        document.getElementById('detail-history').innerHTML =
+          '<p style="color:var(--sub);font-size:13px">Sem registros nos últimos 7 dias.</p>';
+        return;
+      }
+
+      document.getElementById('detail-history').innerHTML = history.map(h => {
+        const pct     = Math.min(100, Math.round((parseInt(h.total_ml) / user.daily_goal_ml) * 100));
+        const reached = parseInt(h.total_ml) >= user.daily_goal_ml;
+        const date    = new Date(h.date).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+        return `
+          <div class="history-bar-wrap">
+            <div class="history-bar-label">
+              <span>${date}</span>
+              <span>${parseInt(h.total_ml).toLocaleString('pt-BR')} ml &nbsp;(${pct}%)</span>
+            </div>
+            <div class="history-bar-bg">
+              <div class="history-bar-fill ${reached ? 'reached' : ''}" style="width:${pct}%"></div>
+            </div>
+          </div>`;
+      }).join('');
+    } catch {
+      document.getElementById('modal-name').textContent = 'Erro ao carregar';
+    }
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('detail-modal')) {
+      document.getElementById('detail-modal').classList.remove('open');
+    }
+  }
+</script>
+</body>
+</html>

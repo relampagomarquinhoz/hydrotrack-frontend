@@ -30,6 +30,12 @@
         }
       ]
     ],
-    "scheme": "hydrotrack"
+    "scheme": "hydrotrack",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5b709a04-1300-4d42-afd9-57d152c70279"
+      }
+    }
   }
 }
