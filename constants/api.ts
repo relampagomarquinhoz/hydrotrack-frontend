@@ -1,4 +1,4 @@
-export const API_URL = 'https://dictate-polygon-little.ngrok-free.dev';
+export const API_URL = 'https://hydrotrack-backend-2ucp.onrender.com';
 
 export const authFetch = async (path: string, token: string | null, options: RequestInit = {}) => {
   return fetch(API_URL + path, {
