@@ -22,7 +22,10 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const res = await authFetch('/auth/login', null, {
+      const isAdminUser = email.toLowerCase().trim() === ADMIN_EMAIL;
+      const route = isAdminUser ? '/admin/login' : '/auth/login';
+
+      const res = await authFetch(route, null, {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
@@ -35,11 +38,9 @@ export default function LoginScreen() {
       }
 
       setToken(data.token);
-      if (data.user?.name) setUserName(data.user.name);
-
-      // Verifica se é admin
-      const isAdminUser = email.toLowerCase().trim() === ADMIN_EMAIL;
       setIsAdmin(isAdminUser);
+      if (data.user?.name) setUserName(data.user.name);
+      if (isAdminUser) setUserName('Administrador');
 
       router.replace('/(tabs)');
     } catch (e) {
