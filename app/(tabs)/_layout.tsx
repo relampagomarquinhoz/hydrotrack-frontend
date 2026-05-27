@@ -1,7 +1,11 @@
 import { Tabs } from 'expo-router';
-import { Home, History, User } from 'lucide-react-native';
+import { Home, History, User, ShieldCheck } from 'lucide-react-native';
+import { Linking } from 'react-native';
+import { useAuth } from '@/constants/AuthContext';
 
 export default function TabLayout() {
+  const { isAdmin } = useAuth();
+
   return (
     <Tabs
       screenOptions={{
@@ -47,6 +51,23 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
+      {isAdmin && (
+        <Tabs.Screen
+          name="admin"
+          options={{
+            title: 'Admin',
+            tabBarIcon: ({ color, size }) => <ShieldCheck color={color} size={size} />,
+            tabBarActiveTintColor: '#C62828',
+            tabBarInactiveTintColor: '#EF9A9A',
+          }}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              Linking.openURL('https://hydrotrack-frontend.vercel.app/painel-admin.html');
+            },
+          }}
+        />
+      )}
     </Tabs>
   );
 }

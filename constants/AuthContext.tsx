@@ -4,8 +4,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 type AuthContextType = {
   token: string | null;
   userName: string;
+  isAdmin: boolean;
   setToken: (token: string | null) => void;
   setUserName: (name: string) => void;
+  setIsAdmin: (value: boolean) => void;
   logout: () => void;
   isLoading: boolean;
 };
@@ -13,8 +15,10 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({
   token: null,
   userName: '',
+  isAdmin: false,
   setToken: () => {},
   setUserName: () => {},
+  setIsAdmin: () => {},
   logout: () => {},
   isLoading: true,
 });
@@ -22,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(null);
   const [userName, setUserNameState] = useState('');
+  const [isAdmin, setIsAdminState] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,8 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedToken = await AsyncStorage.getItem('@hydrotrack_token');
         const savedName = await AsyncStorage.getItem('@hydrotrack_username');
+        const savedIsAdmin = await AsyncStorage.getItem('@hydrotrack_isadmin');
         if (savedToken) setTokenState(savedToken);
         if (savedName) setUserNameState(savedName);
+        if (savedIsAdmin === 'true') setIsAdminState(true);
       } catch (e) {
         console.warn('Erro ao carregar sessão:', e);
       } finally {
@@ -59,18 +66,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const setIsAdmin = async (value: boolean) => {
+    setIsAdminState(value);
+    try {
+      await AsyncStorage.setItem('@hydrotrack_isadmin', value ? 'true' : 'false');
+    } catch (e) {
+      console.warn('Erro ao salvar isAdmin:', e);
+    }
+  };
+
   const logout = async () => {
     setTokenState(null);
     setUserNameState('');
+    setIsAdminState(false);
     try {
-      await AsyncStorage.multiRemove(['@hydrotrack_token', '@hydrotrack_username']);
+      await AsyncStorage.multiRemove(['@hydrotrack_token', '@hydrotrack_username', '@hydrotrack_isadmin']);
     } catch (e) {
       console.warn('Erro ao fazer logout:', e);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ token, userName, setToken, setUserName, logout, isLoading }}>
+    <AuthContext.Provider value={{ token, userName, isAdmin, setToken, setUserName, setIsAdmin, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

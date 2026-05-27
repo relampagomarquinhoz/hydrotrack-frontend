@@ -9,11 +9,13 @@ import { router } from 'expo-router';
 import { authFetch } from '../constants/api';
 import { useAuth } from '../constants/AuthContext';
 
+const ADMIN_EMAIL = 'admin@hydrotrack.com';
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setToken, setUserName } = useAuth();
+  const { setToken, setUserName, setIsAdmin } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) { Alert.alert('Atenção', 'Preencha todos os campos'); return; }
@@ -35,9 +37,13 @@ export default function LoginScreen() {
       setToken(data.token);
       if (data.user?.name) setUserName(data.user.name);
 
+      // Verifica se é admin
+      const isAdminUser = email.toLowerCase().trim() === ADMIN_EMAIL;
+      setIsAdmin(isAdminUser);
+
       router.replace('/(tabs)');
     } catch (e) {
-      Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor. Verifique se o ngrok está rodando.');
+      Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor.');
     } finally {
       setLoading(false);
     }
