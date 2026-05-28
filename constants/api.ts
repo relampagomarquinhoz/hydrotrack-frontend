@@ -1,3 +1,5 @@
+import { jwtDecode } from 'jwt-decode';
+
 export const API_URL = 'https://hydrotrack-backend-2ucp.onrender.com';
 
 export const authFetch = async (path: string, token: string | null, options: RequestInit = {}) => {
@@ -10,3 +12,12 @@ export const authFetch = async (path: string, token: string | null, options: Req
     },
   });
 };
+
+export function getRoleFromToken(token: string): string {
+  try {
+    const decoded: any = jwtDecode(token);
+    return decoded.role || 'user';
+  } catch {
+    return 'user';
+  }
+}

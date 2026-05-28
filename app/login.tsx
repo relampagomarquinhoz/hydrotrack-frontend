@@ -6,10 +6,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Droplets, Mail, Lock } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { authFetch } from '../constants/api';
+import { authFetch, getRoleFromToken } from '../constants/api';
 import { useAuth } from '../constants/AuthContext';
-
-const ADMIN_EMAIL = 'admin@hydrotrack.com';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -22,8 +20,8 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const isAdminUser = email.toLowerCase().trim() === ADMIN_EMAIL;
-      const route = isAdminUser ? '/admin/login' : '/auth/login';
+      const isAdminLogin = email.toLowerCase().trim() === 'admin@hydrotrack.com';
+      const route = isAdminLogin ? '/admin/login' : '/auth/login';
 
       const res = await authFetch(route, null, {
         method: 'POST',
@@ -37,10 +35,12 @@ export default function LoginScreen() {
         return;
       }
 
+      // ✅ isAdmin vem do token JWT, não do email digitado
+      const role = getRoleFromToken(data.token);
       setToken(data.token);
-      setIsAdmin(isAdminUser);
+      setIsAdmin(role === 'admin');
       if (data.user?.name) setUserName(data.user.name);
-      if (isAdminUser) setUserName('Administrador');
+      if (role === 'admin') setUserName('Administrador');
 
       router.replace('/(tabs)');
     } catch (e) {
