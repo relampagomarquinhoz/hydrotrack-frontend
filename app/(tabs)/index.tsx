@@ -49,7 +49,7 @@ function getNextReminderInfo(intervalMinutes: number, startTime: string, endTime
 }
 
 export default function HomeScreen() {
-  const { token, userName } = useAuth();
+  const { token, userName, notifSettings, setNotifSettings } = useAuth();
   const [consumed, setConsumed] = useState(0);
   const [goal, setGoal] = useState(2500);
   const [streak, setStreak] = useState(0);
@@ -59,9 +59,11 @@ export default function HomeScreen() {
   const [drinkInput, setDrinkInput] = useState('200');
   const [bottomHeight, setBottomHeight] = useState(140);
   const [loadingAdd, setLoadingAdd] = useState(false);
-  const [reminderInterval, setReminderInterval] = useState(60);
-  const [reminderStart, setReminderStart] = useState('07:00');
-  const [reminderEnd, setReminderEnd] = useState('22:00');
+
+  // ✅ Configs de notificação vêm do contexto global (atualizadas pelo perfil)
+  const reminderInterval = notifSettings.interval_minutes;
+  const reminderStart = notifSettings.start_time;
+  const reminderEnd = notifSettings.end_time;
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -105,9 +107,13 @@ export default function HomeScreen() {
       const data = await res.json();
       if (res.ok) {
         const s = data.settings ?? data;
-        setReminderInterval(s.interval_minutes ?? 60);
-        setReminderStart(typeof s.start_time === 'string' ? s.start_time.substring(0,5) : '07:00');
-        setReminderEnd(typeof s.end_time === 'string' ? s.end_time.substring(0,5) : '22:00');
+        setNotifSettings({
+          enabled: s.enabled ?? true,
+          interval_minutes: s.interval_minutes ?? 60,
+          start_time: typeof s.start_time === 'string' ? s.start_time.substring(0, 5) : '07:00',
+          end_time: typeof s.end_time === 'string' ? s.end_time.substring(0, 5) : '22:00',
+          active_days: s.active_days ?? [0, 1, 2, 3, 4, 5, 6],
+        });
       }
     } catch (e) {}
   };

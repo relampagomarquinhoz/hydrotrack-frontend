@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { Bell, Calculator, Camera, ChevronRight, Clock, Droplets, KeyRound, LogOut, Moon, Pencil, Settings, Sun, User, X } from 'lucide-react-native';
+import { Bell, Calculator, Camera, ChevronRight, Clock, Droplets, KeyRound, LogOut, Moon, Pencil, Settings, ShieldCheck, Sun, User, X } from 'lucide-react-native';
 import React, { useState, useCallback } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Modal, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../constants/AuthContext';
 import { authFetch } from '../../constants/api';
 import { scheduleHydrationNotifications, requestNotificationPermission } from '../../constants/notificationService';
@@ -17,7 +17,7 @@ const INTERVAL_OPTIONS = [
 const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
 export default function ProfileScreen() {
-  const { userName, token, logout } = useAuth();
+  const { userName, token, logout, isAdmin, setNotifSettings } = useAuth();
   const [alerts, setAlerts] = useState(true);
   const [calcVisible, setCalcVisible] = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
@@ -111,6 +111,15 @@ export default function ProfileScreen() {
   };
 
   const handleSaveNotif = async () => {
+    // ✅ Atualiza contexto global imediatamente — tela início reflete na hora
+    setNotifSettings({
+      enabled: alerts,
+      interval_minutes: interval,
+      start_time: startHour,
+      end_time: endHour,
+      active_days: activeDays,
+    });
+
     try {
       await authFetch('/notifications/settings', token, {
         method: 'PUT',
@@ -335,6 +344,21 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {isAdmin && (
+          <TouchableOpacity
+            style={styles.adminBtn}
+            onPress={() => Linking.openURL('https://hydrotrack-frontend.vercel.app/painel-admin.html')}
+            activeOpacity={0.8}
+          >
+            <ShieldCheck color="#C62828" size={18} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.adminBtnText}>Painel Admin</Text>
+              <Text style={styles.adminBtnHint}>Ver métricas do app</Text>
+            </View>
+            <ChevronRight color="#C62828" size={16} />
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
           <LogOut color="#C62828" size={18} />
           <Text style={styles.logoutText}>Sair da conta</Text>
@@ -523,6 +547,9 @@ const styles = StyleSheet.create({
   divider: { height: 0.5, marginHorizontal: 16 },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: 1.5, borderColor: '#FFCDD2', backgroundColor: '#FFF5F5', marginTop: 4 },
   logoutText: { color: '#C62828', fontSize: 15, fontWeight: '700' },
+  adminBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1.5, borderColor: '#FFCDD2', backgroundColor: '#FFF5F5', marginTop: 4 },
+  adminBtnText: { fontSize: 14, fontWeight: '700', color: '#C62828' },
+  adminBtnHint: { fontSize: 11, color: '#EF9A9A', marginTop: 1 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, gap: 14, elevation: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
