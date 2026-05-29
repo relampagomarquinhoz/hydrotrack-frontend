@@ -1,11 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-// Suprime aviso do Expo Go sobre push tokens (não usamos push remoto)
 import { LogBox } from 'react-native';
 LogBox.ignoreLogs(['expo-notifications: Android Push']);
 
-// Configura como as notificações aparecem quando o app está aberto
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -54,75 +52,98 @@ export async function cancelAllNotifications() {
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
+// ─── Flag para evitar agendamentos simultâneos ────────────────
+let isScheduling = false;
+
 // ─── Agenda notificações de hidratação ───────────────────────
 export async function scheduleHydrationNotifications(
   intervalMinutes: number,
-  startTime: string,  // "07:00"
-  endTime: string,    // "22:00"
+  startTime: string,   // "07:00"
+  endTime: string,     // "22:00"
   activeDays: number[] // [0,1,2,3,4,5,6]
 ) {
-  // Cancela notificações anteriores
-  await cancelAllNotifications();
+  // ✅ Evita chamadas simultâneas/duplicadas
+  if (isScheduling) {
+    console.log('⚠️ Agendamento já em andamento, ignorando chamada duplicada');
+    return 0;
+  }
+  isScheduling = true;
 
-  const hasPermission = await requestNotificationPermission();
-  if (!hasPermission) return;
+  try {
+    await cancelAllNotifications();
 
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
-  const startTotal = startH * 60 + startM;
-  const endTotal = endH * 60 + endM;
+    const hasPermission = await requestNotificationPermission();
+    if (!hasPermission) return 0;
 
-  const messages = [
-    '💧 Hora de beber água! Mantenha-se hidratado.',
-    '🚰 Lembrete: beba um copo de água agora!',
-    '💦 Seu corpo precisa de água. Beba agora!',
-    '🌊 Hidratação é saúde! Hora de beber água.',
-    '⚡ Energia baixa? Beba água e se revitalize!',
-  ];
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
+    const startTotal = startH * 60 + startM;
+    const endTotal = endH * 60 + endM;
 
-  let count = 0;
-  // Agenda para os próximos 7 dias
-  for (let day = 0; day < 7; day++) {
-    const date = new Date();
-    date.setDate(date.getDate() + day);
-    const dayOfWeek = date.getDay(); // 0=Dom, 6=Sáb
+    const messages = [
+      '💧 Hora de beber água! Mantenha-se hidratado.',
+      '🚰 Lembrete: beba um copo de água agora!',
+      '💦 Seu corpo precisa de água. Beba agora!',
+      '🌊 Hidratação é saúde! Hora de beber água.',
+      '⚡ Energia baixa? Beba água e se revitalize!',
+    ];
 
-    if (!activeDays.includes(dayOfWeek)) continue;
+    // ✅ Captura "agora" UMA vez fora do loop e adiciona margem de segurança de 2 minutos.
+    // Isso evita que slots muito próximos do momento atual sejam agendados com timestamp
+    // já expirado, o que faz o SO disparar tudo imediatamente.
+    const now = new Date();
+    const safeNow = new Date(now.getTime() + 2 * 60 * 1000); // agora + 2 min
 
-    // Para cada slot de tempo no dia
-    for (let slot = startTotal; slot < endTotal; slot += intervalMinutes) {
-      const slotH = Math.floor(slot / 60);
-      const slotM = slot % 60;
+    let count = 0;
 
-      const triggerDate = new Date(date);
-      triggerDate.setHours(slotH, slotM, 0, 0);
+    for (let day = 0; day < 7; day++) {
+      // ✅ Cria uma data base limpa para cada dia (sem herdar hora/minuto atual)
+      const baseDate = new Date(now);
+      baseDate.setDate(now.getDate() + day);
+      baseDate.setSeconds(0, 0); // zera segundos e milissegundos
 
-      // Não agenda no passado
-      if (triggerDate <= new Date()) continue;
+      const dayOfWeek = baseDate.getDay();
+      if (!activeDays.includes(dayOfWeek)) continue;
 
-      const message = messages[count % messages.length];
-      count++;
+      for (let slot = startTotal; slot < endTotal; slot += intervalMinutes) {
+        const slotH = Math.floor(slot / 60);
+        const slotM = slot % 60;
 
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '💧 HydroTrack',
-          body: message,
-          sound: 'default',
-          data: { type: 'hydration_reminder' },
-          ...(Platform.OS === 'android' && { channelId: 'hydrotrack' }),
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: triggerDate,
-        },
-      });
+        const triggerDate = new Date(baseDate);
+        triggerDate.setHours(slotH, slotM, 0, 0);
 
-      // Limite de 60 notificações (limite do iOS/Android)
+        // ✅ Usa safeNow (com margem) para não agendar timestamps que já expiraram
+        if (triggerDate.getTime() <= safeNow.getTime()) continue;
+
+        const message = messages[count % messages.length];
+
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '💧 HydroTrack',
+            body: message,
+            sound: 'default',
+            data: { type: 'hydration_reminder' },
+            ...(Platform.OS === 'android' && { channelId: 'hydrotrack' }),
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: triggerDate,
+          },
+        });
+
+        count++;
+
+        // Limite de 60 notificações (limite do iOS/Android)
+        if (count >= 60) break;
+      }
       if (count >= 60) break;
     }
-    if (count >= 60) break;
-  }
 
-  console.log(`✅ ${count} notificações agendadas`);
-  return count;
+    console.log(`✅ ${count} notificações agendadas`);
+    return count;
+
+  } finally {
+    // ✅ Sempre libera a flag, mesmo se der erro
+    isScheduling = false;
+  }
 }
