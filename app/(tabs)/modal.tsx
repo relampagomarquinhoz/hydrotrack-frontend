@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Image, Linking, Modal, ScrollView, StatusBar,
 import { useAuth } from '../../constants/AuthContext';
 import { authFetch } from '../../constants/api';
 import { scheduleHydrationNotifications, requestNotificationPermission } from '../../constants/notificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const INTERVAL_OPTIONS = [
   { label: '30 min', value: 30 },
@@ -56,6 +57,12 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => {
     if (!token) return;
+
+    // Carrega foto salva
+    AsyncStorage.getItem('@hydrotrack_photo').then(uri => {
+      if (uri) setPhotoUri(uri);
+    }).catch(() => {});
+
     authFetch('/auth/me', token).then(r => r.json()).then(d => {
       if (d.user) {
         setUserEmail(d.user.email ?? '');
@@ -220,7 +227,11 @@ export default function ProfileScreen() {
             aspect: [1, 1],
             quality: 0.7,
           });
-          if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
+          if (!result.canceled && result.assets[0]) {
+            const uri = result.assets[0].uri;
+            setPhotoUri(uri);
+            await AsyncStorage.setItem('@hydrotrack_photo', uri);
+          }
         },
       },
       {
@@ -233,7 +244,11 @@ export default function ProfileScreen() {
             aspect: [1, 1],
             quality: 0.7,
           });
-          if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
+          if (!result.canceled && result.assets[0]) {
+            const uri = result.assets[0].uri;
+            setPhotoUri(uri);
+            await AsyncStorage.setItem('@hydrotrack_photo', uri);
+          }
         },
       },
       { text: 'Cancelar', style: 'cancel' },
