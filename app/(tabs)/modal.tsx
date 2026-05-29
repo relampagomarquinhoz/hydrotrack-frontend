@@ -58,20 +58,22 @@ export default function ProfileScreen() {
   useFocusEffect(useCallback(() => {
     if (!token) return;
 
-    // Carrega foto salva
-    AsyncStorage.getItem('@hydrotrack_photo').then(uri => {
-      if (uri) setPhotoUri(uri);
-    }).catch(() => {});
-
     authFetch('/auth/me', token).then(r => r.json()).then(d => {
       if (d.user) {
-        setUserEmail(d.user.email ?? '');
+        const email = d.user.email ?? '';
+        setUserEmail(email);
         setUserGoal(d.user.daily_goal_ml ?? null);
         // Pré-preenche os campos de edição
         setEditName(d.user.name ?? '');
         setEditWeight(d.user.weight_kg ? String(d.user.weight_kg) : '');
         setEditHeight(d.user.height_cm ? String(d.user.height_cm) : '');
         setEditGender(d.user.gender ?? '');
+        // Carrega foto salva por usuário
+        if (email) {
+          AsyncStorage.getItem(`@hydrotrack_photo_${email}`).then(uri => {
+            if (uri) setPhotoUri(uri);
+          }).catch(() => {});
+        }
       }
     }).catch(() => {});
 
@@ -230,7 +232,7 @@ export default function ProfileScreen() {
           if (!result.canceled && result.assets[0]) {
             const uri = result.assets[0].uri;
             setPhotoUri(uri);
-            await AsyncStorage.setItem('@hydrotrack_photo', uri);
+            if (userEmail) await AsyncStorage.setItem(`@hydrotrack_photo_${userEmail}`, uri);
           }
         },
       },
@@ -247,7 +249,7 @@ export default function ProfileScreen() {
           if (!result.canceled && result.assets[0]) {
             const uri = result.assets[0].uri;
             setPhotoUri(uri);
-            await AsyncStorage.setItem('@hydrotrack_photo', uri);
+            if (userEmail) await AsyncStorage.setItem(`@hydrotrack_photo_${userEmail}`, uri);
           }
         },
       },
