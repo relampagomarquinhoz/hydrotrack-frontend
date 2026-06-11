@@ -55,7 +55,7 @@ export default function RegisterScreen() {
     try {
       const res = await authFetch('/auth/register', null, {
         method: 'POST',
-        body: JSON.stringify({ name, email, password, weight, height, gender }),
+        body: JSON.stringify({ name, email, password, weight, height, gender: ({ 'Masculino': 'male', 'Feminino': 'female', 'Outro': 'other' } as Record<string,string>)[gender] || gender }),
       });
 
       const data = await res.json();
