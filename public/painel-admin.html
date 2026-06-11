@@ -172,7 +172,8 @@
     .topbar { padding: 0 16px; }
     .detail-grid { grid-template-columns: 1fr; }
     th:nth-child(3), td:nth-child(3),
-    th:nth-child(4), td:nth-child(4) { display: none; }
+    th:nth-child(4), td:nth-child(4),
+    th:nth-child(5), td:nth-child(5) { display: none; }
   }
 </style>
 </head>
@@ -239,6 +240,16 @@
         <div class="stat-value" id="s-avg">—</div>
         <div class="stat-label">Média de consumo hoje (ml)</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#E3F2FD">♂</div>
+        <div class="stat-value" id="s-male" style="color:#1565C0">—</div>
+        <div class="stat-label">Masculino</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#F3E5F5">♀</div>
+        <div class="stat-value" id="s-female" style="color:#9C27B0">—</div>
+        <div class="stat-label">Feminino</div>
+      </div>
     </div>
 
     <!-- Tabela de usuários -->
@@ -253,13 +264,14 @@
           <tr>
             <th>Usuário</th>
             <th>Email</th>
+            <th>Gênero</th>
             <th>Meta diária</th>
             <th>Cadastro</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody id="users-tbody">
-          <tr><td colspan="5" class="loading">Carregando usuários...</td></tr>
+          <tr><td colspan="6" class="loading">Carregando usuários...</td></tr>
         </tbody>
       </table>
     </div>
@@ -282,7 +294,7 @@
 <script>
   // ── CONFIG ────────────────────────────────────────────────
   // Troque pela URL do Railway após o deploy
-  const API = 'https://hydrotrack-backend-2ucp.onrender.com';
+  const API = localStorage.getItem('hydrotrack_api') || 'http://localhost:3000';
 
   let adminToken = localStorage.getItem('ht_admin_token') || '';
   let allUsers   = [];
@@ -350,7 +362,16 @@
       document.getElementById('s-active').textContent = stats.active_users_7d;
       document.getElementById('s-new').textContent    = stats.new_users_7d;
       document.getElementById('s-avg').textContent    = stats.avg_ml_today.toLocaleString('pt-BR');
+      document.getElementById('s-male').textContent   = stats.male_users   ?? '—';
+      document.getElementById('s-female').textContent = stats.female_users ?? '—';
     } catch {}
+  }
+
+  function genderBadge(g) {
+    if (g === 'male')   return '<span class="badge" style="background:#E3F2FD;color:#1565C0">♂ Masc.</span>';
+    if (g === 'female') return '<span class="badge" style="background:#F3E5F5;color:#9C27B0">♀ Fem.</span>';
+    if (g === 'other')  return '<span class="badge badge-gray">⚧ Outro</span>';
+    return '<span style="color:var(--sub)">—</span>';
   }
 
   async function loadUsers() {
@@ -361,14 +382,14 @@
       renderUsers(users);
     } catch {
       document.getElementById('users-tbody').innerHTML =
-        '<tr><td colspan="5" class="empty">Erro ao carregar usuários.</td></tr>';
+        '<tr><td colspan="6" class="empty">Erro ao carregar usuários.</td></tr>';
     }
   }
 
   function renderUsers(users) {
     const tbody = document.getElementById('users-tbody');
     if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">Nenhum usuário encontrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum usuário encontrado.</td></tr>';
       return;
     }
     const since7d = new Date(); since7d.setDate(since7d.getDate() - 7);
@@ -381,6 +402,7 @@
         <tr onclick="openDetail('${u.id}')">
           <td><div class="avatar-cell"><div class="avatar-init">${initials}</div><strong>${u.name}</strong></div></td>
           <td style="color:var(--sub)">${u.email}</td>
+          <td>${genderBadge(u.gender)}</td>
           <td>${(u.daily_goal_ml||0).toLocaleString('pt-BR')} ml</td>
           <td style="color:var(--sub)">${dateStr}</td>
           <td><span class="badge ${isNew ? 'badge-green' : 'badge-gray'}">${isNew ? 'Novo' : 'Ativo'}</span></td>
