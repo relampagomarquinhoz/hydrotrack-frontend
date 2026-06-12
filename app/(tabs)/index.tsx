@@ -49,7 +49,7 @@ function getNextReminderInfo(intervalMinutes: number, startTime: string, endTime
 }
 
 export default function HomeScreen() {
-  const { token, userName, notifSettings, setNotifSettings } = useAuth();
+  const { token, userName, notifSettings, setNotifSettings, isLoading } = useAuth();
   const [consumed, setConsumed] = useState(0);
   const [goal, setGoal] = useState(2500);
   const [streak, setStreak] = useState(0);
@@ -120,10 +120,11 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (isLoading) return; // ✅ aguarda o token ser carregado do AsyncStorage
       loadToday();
       loadStreak();
       loadNotificationSettings();
-    }, [token])
+    }, [token, isLoading])
   );
 
   useEffect(() => {
