@@ -77,14 +77,24 @@ export default function ProfileScreen() {
       }
     }).catch(() => {});
 
-    authFetch('/notifications/settings', token).then(r => r.json()).then(d => {
+    authFetch('/notifications/settings', token).then(r => r.json()).then(async d => {
       if (d.success !== false) {
         const s = d.settings ?? d;
-        setIntervalVal(s.interval_minutes ?? 60);
-        setStartHour(typeof s.start_time === 'string' ? s.start_time.substring(0,5) : '07:00');
-        setEndHour(typeof s.end_time === 'string' ? s.end_time.substring(0,5) : '22:00');
-        setActiveDays(s.active_days ?? [0,1,2,3,4,5,6]);
-        setAlerts(s.enabled ?? true);
+        const iv  = s.interval_minutes ?? 60;
+        const sh  = typeof s.start_time === 'string' ? s.start_time.substring(0,5) : '07:00';
+        const eh  = typeof s.end_time === 'string' ? s.end_time.substring(0,5) : '22:00';
+        const ad  = s.active_days ?? [0,1,2,3,4,5,6];
+        const en  = s.enabled ?? true;
+        setIntervalVal(iv);
+        setStartHour(sh);
+        setEndHour(eh);
+        setActiveDays(ad);
+        setAlerts(en);
+
+        // ✅ Reagenda ao abrir o app — garante que as 60 notificações estão sempre frescas
+        if (en) {
+          scheduleHydrationNotifications(iv, sh, eh, ad).catch(() => {});
+        }
       }
     }).catch(() => {});
   }, [token]));
@@ -141,6 +151,14 @@ export default function ProfileScreen() {
         }),
       });
     } catch (e) {}
+
+    // ✅ Reagenda notificações locais com as novas configurações
+    if (alerts) {
+      await scheduleHydrationNotifications(interval, startHour, endHour, activeDays);
+    } else {
+      const { cancelAllNotifications } = await import('../../constants/notificationService');
+      await cancelAllNotifications();
+    }
 
     if (alerts) {
       // Garante permissão antes de tentar agendar

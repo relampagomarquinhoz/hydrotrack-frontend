@@ -133,13 +133,19 @@ export async function scheduleHydrationNotifications(
 
         count++;
 
-        // Limite de 60 notificações (limite do iOS/Android)
-        if (count >= 60) break;
+        // ✅ Limite aumentado para cobrir mais dias
+        if (count >= 200) break;
       }
-      if (count >= 60) break;
+      if (count >= 200) break;
     }
 
     console.log(`✅ ${count} notificações agendadas`);
+
+    // ✅ Se agendou menos de 20 notificações, avisa no console (debug)
+    if (count < 20) {
+      console.warn(`⚠️ Poucas notificações agendadas (${count}). Verifique intervalo e horário.`);
+    }
+
     return count;
 
   } finally {
