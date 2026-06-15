@@ -4,7 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Droplets, Mail, Lock } from 'lucide-react-native';
+import { Droplets, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { authFetch, getRoleFromToken } from '../constants/api';
 import { useAuth } from '../constants/AuthContext';
@@ -12,6 +12,7 @@ import { useAuth } from '../constants/AuthContext';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { setToken, setUserName, setIsAdmin } = useAuth();
 
@@ -69,7 +70,12 @@ export default function LoginScreen() {
           <View style={styles.inputWrap}>
             <Lock color="#90CAF9" size={18} style={styles.inputIcon} />
             <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#90CAF9"
-              value={password} onChangeText={setPassword} secureTextEntry />
+              value={password} onChangeText={setPassword} secureTextEntry={!showPassword} />
+            <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              {showPassword
+                ? <EyeOff color="#90CAF9" size={18} />
+                : <Eye color="#90CAF9" size={18} />}
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.85} disabled={loading}>
             <LinearGradient colors={['#1565C0', '#0D47A1']} style={styles.loginGrad}>
