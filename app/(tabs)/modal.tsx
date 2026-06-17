@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect } from 'expo-router';
-import { Bell, Calculator, Camera, ChevronRight, Clock, Droplets, KeyRound, LogOut, Moon, Pencil, Settings, ShieldCheck, Sun, User, X } from 'lucide-react-native';
+import { Bell, Calculator, Camera, ChevronRight, Clock, Droplets, Eye, EyeOff, KeyRound, LogOut, Moon, Pencil, Settings, ShieldCheck, Sun, User, X } from 'lucide-react-native';
 import React, { useState, useCallback } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Modal, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../constants/AuthContext';
 import { authFetch } from '../../constants/api';
 import { scheduleHydrationNotifications, requestNotificationPermission } from '../../constants/notificationService';
@@ -48,6 +48,10 @@ export default function ProfileScreen() {
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [passLoading, setPassLoading] = useState(false);
+  // ✅ Controla se cada campo de senha mostra o texto ou os pontinhos
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   const bg = '#F0F7FF';
   const cardBg = '#fff';
@@ -522,37 +526,58 @@ export default function ProfileScreen() {
 
       {/* Modal Alterar Senha */}
       <Modal visible={passVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}><KeyRound color="#C62828" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Alterar senha</Text></View>
-              <TouchableOpacity onPress={() => { setPassVisible(false); setCurrentPass(''); setNewPass(''); setConfirmPass(''); }}>
-                <X color={textSub} size={20} />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleRow}><KeyRound color="#C62828" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Alterar senha</Text></View>
+                <TouchableOpacity onPress={() => { setPassVisible(false); setCurrentPass(''); setNewPass(''); setConfirmPass(''); setShowCurrentPass(false); setShowNewPass(false); setShowConfirmPass(false); }}>
+                  <X color={textSub} size={20} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.calcInput, { borderColor: border }]}>
+                <Text style={[styles.calcInputLabel, { color: textSub }]}>Senha atual</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+                  <TextInput style={[styles.calcInputField, { color: text, flex: 0, minWidth: 80, textAlign: 'right' }]} placeholder="••••••" placeholderTextColor={textSub} value={currentPass} onChangeText={setCurrentPass} secureTextEntry={!showCurrentPass} />
+                  <TouchableOpacity onPress={() => setShowCurrentPass(p => !p)} style={{ marginLeft: 8 }}>
+                    {showCurrentPass ? <EyeOff color={textSub} size={18} /> : <Eye color={textSub} size={18} />}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={[styles.calcInput, { borderColor: border }]}>
+                <Text style={[styles.calcInputLabel, { color: textSub }]}>Nova senha</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+                  <TextInput style={[styles.calcInputField, { color: text, flex: 0, minWidth: 80, textAlign: 'right' }]} placeholder="Mínimo 6 caracteres" placeholderTextColor={textSub} value={newPass} onChangeText={setNewPass} secureTextEntry={!showNewPass} />
+                  <TouchableOpacity onPress={() => setShowNewPass(p => !p)} style={{ marginLeft: 8 }}>
+                    {showNewPass ? <EyeOff color={textSub} size={18} /> : <Eye color={textSub} size={18} />}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={[styles.calcInput, { borderColor: border }]}>
+                <Text style={[styles.calcInputLabel, { color: textSub }]}>Confirmar nova senha</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+                  <TextInput style={[styles.calcInputField, { color: text, flex: 0, minWidth: 80, textAlign: 'right' }]} placeholder="Repita a nova senha" placeholderTextColor={textSub} value={confirmPass} onChangeText={setConfirmPass} secureTextEntry={!showConfirmPass} />
+                  <TouchableOpacity onPress={() => setShowConfirmPass(p => !p)} style={{ marginLeft: 8 }}>
+                    {showConfirmPass ? <EyeOff color={textSub} size={18} /> : <Eye color={textSub} size={18} />}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <TouchableOpacity onPress={handleChangePassword} activeOpacity={0.85} disabled={passLoading}>
+                <LinearGradient colors={['#C62828', '#B71C1C']} style={styles.calcBtn}>
+                  {passLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.calcBtnText}>Alterar senha</Text>}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
-
-            <View style={[styles.calcInput, { borderColor: border }]}>
-              <Text style={[styles.calcInputLabel, { color: textSub }]}>Senha atual</Text>
-              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="••••••" placeholderTextColor={textSub} value={currentPass} onChangeText={setCurrentPass} secureTextEntry />
-            </View>
-
-            <View style={[styles.calcInput, { borderColor: border }]}>
-              <Text style={[styles.calcInputLabel, { color: textSub }]}>Nova senha</Text>
-              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Mínimo 6 caracteres" placeholderTextColor={textSub} value={newPass} onChangeText={setNewPass} secureTextEntry />
-            </View>
-
-            <View style={[styles.calcInput, { borderColor: border }]}>
-              <Text style={[styles.calcInputLabel, { color: textSub }]}>Confirmar nova senha</Text>
-              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Repita a nova senha" placeholderTextColor={textSub} value={confirmPass} onChangeText={setConfirmPass} secureTextEntry />
-            </View>
-
-            <TouchableOpacity onPress={handleChangePassword} activeOpacity={0.85} disabled={passLoading}>
-              <LinearGradient colors={['#C62828', '#B71C1C']} style={styles.calcBtn}>
-                {passLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.calcBtnText}>Alterar senha</Text>}
-              </LinearGradient>
-            </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </View>

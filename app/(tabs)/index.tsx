@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Droplets, Flame, Pencil, X } from 'lucide-react-native';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  Animated, Dimensions, KeyboardAvoidingView, Modal, Platform,
+  Animated, AppState, Dimensions, KeyboardAvoidingView, Modal, Platform,
   ScrollView, StatusBar, StyleSheet, Text, TextInput,
   TouchableOpacity, View, ActivityIndicator,
 } from 'react-native';
@@ -70,6 +70,7 @@ export default function HomeScreen() {
   const btnScale = useRef(new Animated.Value(1)).current;
   const modalAnim = useRef(new Animated.Value(0)).current;
   const drinkModalAnim = useRef(new Animated.Value(0)).current;
+  const lastLoadedDateRef = useRef(new Date().toDateString());
 
   const progress = Math.min(consumed / goal, 1);
   const progressPercent = Math.round(progress * 100);
@@ -85,6 +86,7 @@ export default function HomeScreen() {
         setConsumed(data.summary.total_ml ?? 0);
         setGoal(data.summary.daily_goal_ml ?? 2500);
       }
+      lastLoadedDateRef.current = new Date().toDateString(); // ✅ marca a data dessa consulta
     } catch (e) {
       // falha silenciosa
     }
@@ -126,6 +128,42 @@ export default function HomeScreen() {
       loadNotificationSettings();
     }, [token, isLoading])
   );
+
+  // ✅ Detecta troca de dia ao voltar para o app (resolve o "zerar à meia noite")
+  // O useFocusEffect sozinho só dispara ao trocar de aba — se o usuário ficar
+  // parado na tela Início, ou minimizar e voltar, ele não rodava de novo.
+  // O AppState detecta quando o app volta de background/inactive para active
+  // e, se a data mudou desde a última consulta, recarrega os dados do dia.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') return;
+      if (!token || isLoading) return;
+
+      const today = new Date().toDateString();
+      if (today !== lastLoadedDateRef.current) {
+        loadToday();
+        loadStreak();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [token, isLoading]);
+
+  // ✅ Também checa periodicamente enquanto o app fica aberto e ativo na tela
+  // (cobre o caso de deixar o celular ligado passando da meia noite sem minimizar)
+  useEffect(() => {
+    if (!token || isLoading) return;
+
+    const interval = setInterval(() => {
+      const today = new Date().toDateString();
+      if (today !== lastLoadedDateRef.current) {
+        loadToday();
+        loadStreak();
+      }
+    }, 60 * 1000); // checa a cada 1 minuto
+
+    return () => clearInterval(interval);
+  }, [token, isLoading]);
 
   useEffect(() => {
     Animated.timing(progressAnim, {
