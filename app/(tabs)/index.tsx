@@ -189,7 +189,10 @@ export default function HomeScreen() {
       Animated.timing(btnScale, { toValue: 1, duration: 80, useNativeDriver: true }),
     ]).start();
 
-    setConsumed((prev) => Math.min(prev + amount, goal));
+    // ✅ FIX: removido o Math.min(prev + amount, goal) que travava o valor
+    // exibido na tela assim que o consumo ultrapassava a meta diária.
+    // O consumo pode (e deve) passar de 100% — só a barra de progresso é limitada a 100%.
+    setConsumed((prev) => prev + amount);
 
     setLoadingAdd(true);
     try {

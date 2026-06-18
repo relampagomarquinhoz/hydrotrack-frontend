@@ -5,6 +5,7 @@ import { Bell, Calculator, Camera, ChevronRight, Clock, Droplets, Eye, EyeOff, K
 import React, { useState, useCallback } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../constants/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authFetch } from '../../constants/api';
 import { scheduleHydrationNotifications, requestNotificationPermission } from '../../constants/notificationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +20,7 @@ const DAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
 export default function ProfileScreen() {
   const { userName, token, logout, isAdmin, setNotifSettings } = useAuth();
+  const insets = useSafeAreaInsets(); // ✅ espaço da barra de navegação do sistema
   const [alerts, setAlerts] = useState(true);
   const [calcVisible, setCalcVisible] = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
@@ -406,122 +408,140 @@ export default function ProfileScreen() {
 
       {/* Modal Calculadora */}
       <Modal visible={calcVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}><Droplets color="#1565C0" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Calcular meta de água</Text></View>
-              <TouchableOpacity onPress={() => { setCalcVisible(false); setCalcResult(null); setCalcWeight(''); setCalcAge(''); }}><X color={textSub} size={20} /></TouchableOpacity>
-            </View>
-            <Text style={[styles.modalHint, { color: textSub }]}>A fórmula leva em conta seu peso e idade para estimar a ingestão diária ideal.</Text>
-            <View style={[styles.calcInput, { borderColor: border }]}>
-              <Text style={[styles.calcInputLabel, { color: textSub }]}>Peso (kg)</Text>
-              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 70" placeholderTextColor={textSub} value={calcWeight} onChangeText={setCalcWeight} keyboardType="numeric" />
-            </View>
-            <View style={[styles.calcInput, { borderColor: border }]}>
-              <Text style={[styles.calcInputLabel, { color: textSub }]}>Idade</Text>
-              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 25" placeholderTextColor={textSub} value={calcAge} onChangeText={setCalcAge} keyboardType="numeric" />
-            </View>
-            <TouchableOpacity onPress={handleCalc} activeOpacity={0.85}>
-              <LinearGradient colors={['#1565C0', '#0D47A1']} style={styles.calcBtn}><Text style={styles.calcBtnText}>Calcular</Text></LinearGradient>
-            </TouchableOpacity>
-            {calcResult !== null && (
-              <View style={styles.resultBox}>
-                <Text style={[styles.resultLabel, { color: textSub }]}>Sua meta diária sugerida</Text>
-                <View style={styles.resultValueRow}><Droplets color="#1565C0" size={22} /><Text style={styles.resultValue}>{calcResult.toLocaleString()} ml</Text></View>
-                <Text style={[styles.resultSub, { color: textSub }]}>≈ {Math.round(calcResult / 250)} copos de 250 ml por dia</Text>
-                <TouchableOpacity onPress={handleApplyCalcResult} activeOpacity={0.85} style={styles.applyGoalBtn}>
-                  <Text style={styles.applyGoalBtnText}>Usar esta meta</Text>
-                </TouchableOpacity>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { backgroundColor: cardBg, paddingBottom: 24 + insets.bottom }]}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleRow}><Droplets color="#1565C0" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Calcular meta de água</Text></View>
+                <TouchableOpacity onPress={() => { setCalcVisible(false); setCalcResult(null); setCalcWeight(''); setCalcAge(''); }}><X color={textSub} size={20} /></TouchableOpacity>
               </View>
-            )}
+              <Text style={[styles.modalHint, { color: textSub }]}>A fórmula leva em conta seu peso e idade para estimar a ingestão diária ideal.</Text>
+              <View style={[styles.calcInput, { borderColor: border }]}>
+                <Text style={[styles.calcInputLabel, { color: textSub }]}>Peso (kg)</Text>
+                <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 70" placeholderTextColor={textSub} value={calcWeight} onChangeText={setCalcWeight} keyboardType="numeric" />
+              </View>
+              <View style={[styles.calcInput, { borderColor: border }]}>
+                <Text style={[styles.calcInputLabel, { color: textSub }]}>Idade</Text>
+                <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 25" placeholderTextColor={textSub} value={calcAge} onChangeText={setCalcAge} keyboardType="numeric" />
+              </View>
+              <TouchableOpacity onPress={handleCalc} activeOpacity={0.85}>
+                <LinearGradient colors={['#1565C0', '#0D47A1']} style={styles.calcBtn}><Text style={styles.calcBtnText}>Calcular</Text></LinearGradient>
+              </TouchableOpacity>
+              {calcResult !== null && (
+                <View style={styles.resultBox}>
+                  <Text style={[styles.resultLabel, { color: textSub }]}>Sua meta diária sugerida</Text>
+                  <View style={styles.resultValueRow}><Droplets color="#1565C0" size={22} /><Text style={styles.resultValue}>{calcResult.toLocaleString()} ml</Text></View>
+                  <Text style={[styles.resultSub, { color: textSub }]}>≈ {Math.round(calcResult / 250)} copos de 250 ml por dia</Text>
+                  <TouchableOpacity onPress={handleApplyCalcResult} activeOpacity={0.85} style={styles.applyGoalBtn}>
+                    <Text style={styles.applyGoalBtnText}>Usar esta meta</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Notificações */}
       <Modal visible={notifVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}><Bell color="#F57F17" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Configurar lembretes</Text></View>
-              <TouchableOpacity onPress={() => setNotifVisible(false)}><X color={textSub} size={20} /></TouchableOpacity>
-            </View>
-            <Text style={[styles.notifSectionLabel, { color: text }]}>Intervalo entre lembretes</Text>
-            <View style={styles.intervalRow}>
-              {INTERVAL_OPTIONS.map(opt => (
-                <TouchableOpacity key={opt.value} style={[styles.intervalBtn, { borderColor: border }, interval === opt.value && styles.intervalBtnActive]} onPress={() => setIntervalVal(opt.value)} activeOpacity={0.8}>
-                  <Text style={[styles.intervalLabel, { color: textSub }, interval === opt.value && styles.intervalLabelActive]}>{opt.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={[styles.notifSectionLabel, { color: text }]}>Período de notificações</Text>
-            <View style={styles.timeRow}>
-              <View style={styles.timeBlock}>
-                <Sun color="#F57F17" size={16} />
-                <Text style={[styles.timeLabel, { color: textSub }]}>Início</Text>
-                <TextInput style={[styles.timeInput, { borderColor: border, color: text }]} value={startHour} onChangeText={setStartHour} placeholder="07:00" placeholderTextColor={textSub} keyboardType="numbers-and-punctuation" maxLength={5} />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { backgroundColor: cardBg, paddingBottom: 24 + insets.bottom }]}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleRow}><Bell color="#F57F17" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Configurar lembretes</Text></View>
+                <TouchableOpacity onPress={() => setNotifVisible(false)}><X color={textSub} size={20} /></TouchableOpacity>
               </View>
-              <View style={[styles.timeDash, { backgroundColor: border }]} />
-              <View style={styles.timeBlock}>
-                <Moon color="#6A1B9A" size={16} />
-                <Text style={[styles.timeLabel, { color: textSub }]}>Fim</Text>
-                <TextInput style={[styles.timeInput, { borderColor: border, color: text }]} value={endHour} onChangeText={setEndHour} placeholder="22:00" placeholderTextColor={textSub} keyboardType="numbers-and-punctuation" maxLength={5} />
+              <Text style={[styles.notifSectionLabel, { color: text }]}>Intervalo entre lembretes</Text>
+              <View style={styles.intervalRow}>
+                {INTERVAL_OPTIONS.map(opt => (
+                  <TouchableOpacity key={opt.value} style={[styles.intervalBtn, { borderColor: border }, interval === opt.value && styles.intervalBtnActive]} onPress={() => setIntervalVal(opt.value)} activeOpacity={0.8}>
+                    <Text style={[styles.intervalLabel, { color: textSub }, interval === opt.value && styles.intervalLabelActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
+              <Text style={[styles.notifSectionLabel, { color: text }]}>Período de notificações</Text>
+              <View style={styles.timeRow}>
+                <View style={styles.timeBlock}>
+                  <Sun color="#F57F17" size={16} />
+                  <Text style={[styles.timeLabel, { color: textSub }]}>Início</Text>
+                  <TextInput style={[styles.timeInput, { borderColor: border, color: text }]} value={startHour} onChangeText={setStartHour} placeholder="07:00" placeholderTextColor={textSub} keyboardType="numbers-and-punctuation" maxLength={5} />
+                </View>
+                <View style={[styles.timeDash, { backgroundColor: border }]} />
+                <View style={styles.timeBlock}>
+                  <Moon color="#6A1B9A" size={16} />
+                  <Text style={[styles.timeLabel, { color: textSub }]}>Fim</Text>
+                  <TextInput style={[styles.timeInput, { borderColor: border, color: text }]} value={endHour} onChangeText={setEndHour} placeholder="22:00" placeholderTextColor={textSub} keyboardType="numbers-and-punctuation" maxLength={5} />
+                </View>
+              </View>
+              <Text style={[styles.notifSectionLabel, { color: text }]}>Dias ativos</Text>
+              <View style={styles.daysRow}>
+                {DAYS.map((d, i) => (
+                  <TouchableOpacity key={i} style={[styles.dayBtn, { borderColor: border }, activeDays.includes(i) && styles.dayBtnActive]} onPress={() => toggleDay(i)} activeOpacity={0.8}>
+                    <Text style={[styles.dayLabel, { color: textSub }, activeDays.includes(i) && styles.dayLabelActive]}>{d}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity onPress={handleSaveNotif} activeOpacity={0.85}>
+                <LinearGradient colors={['#1565C0', '#0D47A1']} style={styles.calcBtn}><Text style={styles.calcBtnText}>Salvar configurações</Text></LinearGradient>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.notifSectionLabel, { color: text }]}>Dias ativos</Text>
-            <View style={styles.daysRow}>
-              {DAYS.map((d, i) => (
-                <TouchableOpacity key={i} style={[styles.dayBtn, { borderColor: border }, activeDays.includes(i) && styles.dayBtnActive]} onPress={() => toggleDay(i)} activeOpacity={0.8}>
-                  <Text style={[styles.dayLabel, { color: textSub }, activeDays.includes(i) && styles.dayLabelActive]}>{d}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity onPress={handleSaveNotif} activeOpacity={0.85}>
-              <LinearGradient colors={['#1565C0', '#0D47A1']} style={styles.calcBtn}><Text style={styles.calcBtnText}>Salvar configurações</Text></LinearGradient>
-            </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       {/* Modal Editar Perfil */}
       <Modal visible={editVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}><Pencil color="#2E7D32" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Editar dados do perfil</Text></View>
-              <TouchableOpacity onPress={() => setEditVisible(false)}><X color={textSub} size={20} /></TouchableOpacity>
-            </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { backgroundColor: cardBg, paddingBottom: 24 + insets.bottom }]}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleRow}><Pencil color="#2E7D32" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Editar dados do perfil</Text></View>
+                <TouchableOpacity onPress={() => setEditVisible(false)}><X color={textSub} size={20} /></TouchableOpacity>
+              </View>
 
-            <View style={[styles.calcInput, { borderColor: border }]}>
-              <Text style={[styles.calcInputLabel, { color: textSub }]}>Nome</Text>
-              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Seu nome" placeholderTextColor={textSub} value={editName} onChangeText={setEditName} autoCapitalize="words" />
-            </View>
+              <View style={[styles.calcInput, { borderColor: border }]}>
+                <Text style={[styles.calcInputLabel, { color: textSub }]}>Nome</Text>
+                <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Seu nome" placeholderTextColor={textSub} value={editName} onChangeText={setEditName} autoCapitalize="words" />
+              </View>
 
-            <View style={[styles.calcInput, { borderColor: border }]}>
-              <Text style={[styles.calcInputLabel, { color: textSub }]}>Peso (kg)</Text>
-              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 70" placeholderTextColor={textSub} value={editWeight} onChangeText={setEditWeight} keyboardType="numeric" />
-            </View>
+              <View style={[styles.calcInput, { borderColor: border }]}>
+                <Text style={[styles.calcInputLabel, { color: textSub }]}>Peso (kg)</Text>
+                <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 70" placeholderTextColor={textSub} value={editWeight} onChangeText={setEditWeight} keyboardType="numeric" />
+              </View>
 
-            <View style={[styles.calcInput, { borderColor: border }]}>
-              <Text style={[styles.calcInputLabel, { color: textSub }]}>Altura (cm)</Text>
-              <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 170" placeholderTextColor={textSub} value={editHeight} onChangeText={setEditHeight} keyboardType="numeric" />
-            </View>
+              <View style={[styles.calcInput, { borderColor: border }]}>
+                <Text style={[styles.calcInputLabel, { color: textSub }]}>Altura (cm)</Text>
+                <TextInput style={[styles.calcInputField, { color: text }]} placeholder="Ex: 170" placeholderTextColor={textSub} value={editHeight} onChangeText={setEditHeight} keyboardType="numeric" />
+              </View>
 
-            <Text style={[styles.notifSectionLabel, { color: text }]}>Gênero</Text>
-            <View style={styles.intervalRow}>
-              {['Masculino', 'Feminino', 'Outro'].map(g => (
-                <TouchableOpacity key={g} style={[styles.intervalBtn, { borderColor: border }, editGender === g && styles.intervalBtnActive]} onPress={() => setEditGender(g)} activeOpacity={0.8}>
-                  <Text style={[styles.intervalLabel, { color: textSub }, editGender === g && styles.intervalLabelActive]}>{g}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+              <Text style={[styles.notifSectionLabel, { color: text }]}>Gênero</Text>
+              <View style={styles.intervalRow}>
+                {['Masculino', 'Feminino', 'Outro'].map(g => (
+                  <TouchableOpacity key={g} style={[styles.intervalBtn, { borderColor: border }, editGender === g && styles.intervalBtnActive]} onPress={() => setEditGender(g)} activeOpacity={0.8}>
+                    <Text style={[styles.intervalLabel, { color: textSub }, editGender === g && styles.intervalLabelActive]}>{g}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-            <TouchableOpacity onPress={handleSaveEdit} activeOpacity={0.85} disabled={editLoading}>
-              <LinearGradient colors={['#2E7D32', '#1B5E20']} style={styles.calcBtn}>
-                {editLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.calcBtnText}>Salvar alterações</Text>}
-              </LinearGradient>
-            </TouchableOpacity>
+              <TouchableOpacity onPress={handleSaveEdit} activeOpacity={0.85} disabled={editLoading}>
+                <LinearGradient colors={['#2E7D32', '#1B5E20']} style={styles.calcBtn}>
+                  {editLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.calcBtnText}>Salvar alterações</Text>}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Alterar Senha */}
@@ -532,7 +552,7 @@ export default function ProfileScreen() {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -100}
         >
           <View style={styles.modalOverlay}>
-            <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
+            <View style={[styles.modalCard, { backgroundColor: cardBg, paddingBottom: 24 + insets.bottom }]}>
               <View style={styles.modalHeader}>
                 <View style={styles.modalTitleRow}><KeyRound color="#C62828" size={20} /><Text style={[styles.modalTitle, { color: text }]}>Alterar senha</Text></View>
                 <TouchableOpacity onPress={() => { setPassVisible(false); setCurrentPass(''); setNewPass(''); setConfirmPass(''); setShowCurrentPass(false); setShowNewPass(false); setShowConfirmPass(false); }}>
